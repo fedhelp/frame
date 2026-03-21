@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRAME / Cinematic Studio</title>
+<script src="https://js.puter.com/v2/"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #080808;
+    --deep: #0e0e0e;
+    --panel: #141414;
+    --border: #222222;
+    --border-lit: #333333;
+    --text: #e8e4dc;
+    --muted: #5a5752;
+    --accent: #c8a96e;
+    --accent-dim: #7a6340;
+    --red: #c0392b;
+    --green: #2ecc71;
+    --blue: #3498db;
+    --film: #1a1510;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRAIN OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--black);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 6px;
+    color: var(--text);
+  }
+
+  .logo span {
+    color: var(--accent);
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .rec-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--red);
+    animation: pulse-rec 1.5s infinite;
+  }
+
+  @keyframes pulse-rec {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  /* MAIN LAYOUT */
+  .studio {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+
+  /* STAGE INDICATOR */
+  .stage-track {
+    display: flex;
+    gap: 0;
+    margin-bottom: 40px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .stage-pip {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    transition: background 0.4s ease;
+  }
+
+  .stage-pip.active { background: var(--accent); }
+  .stage-pip.done { background: var(--accent-dim); }
+
+  /* UPLOAD ZONE */
+  .upload-zone {
+    border: 1px dashed var(--border-lit);
+    border-radius: 2px;
+    padding: 60px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    background: var(--deep);
+    margin-bottom: 24px;
+  }
+
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: var(--film);
+  }
+
+  .upload-zone input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 16px;
+    border: 1px solid var(--border-lit);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 20px;
+  }
+
+  .upload-zone h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 3px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .upload-zone p {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  /* PREVIEW */
+  .preview-strip {
+    display: none;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+    background: var(--deep);
+  }
+
+  .preview-strip img {
+    width: 100%;
+    max-height: 280px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .preview-label {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(8,8,8,0.85);
+    padding: 4px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    border: 1px solid var(--accent-dim);
+  }
+
+  .preview-reset {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(8,8,8,0.85);
+    border: 1px solid var(--border-lit);
+    color: var(--muted);
+    padding: 4px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .preview-reset:hover { color: var(--red); border-color: var(--red); }
+
+  /* FORM FIELDS */
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .field-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .field-input {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    width: 100%;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  .field-input:focus { border-color: var(--accent-dim); }
+  .field-input::placeholder { color: var(--muted); }
+
+  /* PLATFORM SELECTOR */
+  .platform-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .platform-card {
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--panel);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .platform-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.2s;
+  }
+
+  .platform-card:hover::before,
+  .platform-card.selected::before { transform: scaleX(1); }
+
+  .platform-card.selected {
+    border-color: var(--accent-dim);
+    background: var(--film);
+  }
+
+  .platform-card.selected .pc-type { color: var(--accent); }
+
+  .pc-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 2px;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .pc-type {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* ENGINE SELECTOR */
+  .engine-panel {
+    display: none;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .engine-panel.visible { display: block; }
+
+  .engine-header {
+    padding: 10px 16px;
+    background: var(--film);
+    border-bottom: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+
+  .engine-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .engine-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .engine-item:last-child { border-bottom: none; }
+  .engine-item:hover { background: var(--film); }
+  .engine-item.selected { background: var(--film); }
+  .engine-item.selected .ei-name { color: var(--accent); }
+
+  .ei-name {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  .ei-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border-radius: 1px;
+    text-transform: uppercase;
+  }
+
+  .badge-full { background: rgba(46,204,113,0.1); color: var(--green); border: 1px solid rgba(46,204,113,0.2); }
+  .badge-partial { background: rgba(200,169,110,0.1); color: var(--accent); border: 1px solid rgba(200,169,110,0.2); }
+  .badge-post { background: rgba(90,87,82,0.2); color: var(--muted); border: 1px solid var(--border); }
+
+  /* GENERATE BUTTON */
+  .gen-btn {
+    width: 100%;
+    padding: 18px;
+    background: var(--accent);
+    color: var(--black);
+    border: none;
+    border-radius: 2px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+  }
+
+  .gen-btn:hover { background: #d4b87a; }
+  .gen-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  /* OUTPUT PANEL */
+  .output-panel {
+    display: none;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 32px;
+  }
+
+  .output-panel.visible { display: block; }
+
+  .output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--film);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .output-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .output-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .out-btn {
+    padding: 5px 12px;
+    border: 1px solid var(--border-lit);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 1px;
+  }
+
+  .out-btn:hover { color: var(--text); border-color: var(--text); }
+
+  /* IMAGE OUTPUT */
+  .image-output-wrap {
+    background: var(--deep);
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .image-output-wrap img {
+    max-width: 100%;
+    border-radius: 1px;
+    display: block;
+  }
+
+  /* TITLE OVERLAY ON IMAGE */
+  .title-card-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+  }
+
+  .title-overlay {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    right: 16px;
+  }
+
+  .title-overlay .film-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(18px, 5vw, 32px);
+    letter-spacing: 4px;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+    line-height: 1;
+  }
+
+  .title-overlay .film-tagline {
+    font-family: 'DM Sans', sans-serif;
+    font-size: clamp(9px, 2vw, 12px);
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.75);
+    margin-top: 4px;
+  }
+
+  /* COLOR PALETTE */
+  .palette-strip {
+    display: flex;
+    height: 48px;
+  }
+
+  .palette-swatch {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+    transition: flex 0.2s;
+  }
+
+  .palette-swatch:hover { flex: 2; }
+
+  .swatch-hex {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    background: rgba(0,0,0,0.7);
+    padding: 2px 4px;
+    border-radius: 1px;
+  }
+
+  .palette-swatch:hover .swatch-hex { opacity: 1; }
+
+  /* TEXT OUTPUT SECTIONS */
+  .text-section {
+    padding: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .text-section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .text-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .text-body {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #b0aa9f;
+    font-weight: 300;
+  }
+
+  .shot-block {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .shot-row {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .shot-row:last-child { border-bottom: none; }
+
+  .shot-key {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--accent);
+    text-transform: uppercase;
+    min-width: 100px;
+    padding-top: 2px;
+  }
+
+  .shot-val {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .cam-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .cam-option {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .cam-option:hover { border-color: var(--border-lit); color: var(--text); }
+  .cam-option.recommended { border-color: var(--accent-dim); color: var(--text); background: var(--film); }
+  .cam-option.selected { border-color: var(--accent); color: var(--accent); }
+
+  .cam-letter {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 1px;
+    min-width: 16px;
+  }
+
+  /* PROMPT OUTPUT */
+  .prompt-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    line-height: 1.8;
+    color: #a0c4a0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-top: 8px;
+  }
+
+  /* LOOP ACTIONS */
+  .loop-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .loop-btn {
+    padding: 12px 8px;
+    border: 1px solid var(--border-lit);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 1px;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .loop-btn:hover { border-color: var(--accent-dim); color: var(--text); }
+  .loop-btn.primary { border-color: var(--accent-dim); color: var(--accent); }
+  .loop-btn.primary:hover { border-color: var(--accent); background: rgba(200,169,110,0.05); }
+
+  /* LOADING STATE */
+  .loading-overlay {
+    display: none;
+    padding: 60px 20px;
+    text-align: center;
+    background: var(--deep);
+  }
+
+  .loading-overlay.visible { display: block; }
+
+  .film-reel {
+    width: 56px;
+    height: 56px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    animation: spin 1.2s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .loading-stage {
+    font-size: 11px;
+    color: var(--accent);
+    margin-top: 6px;
+    letter-spacing: 1px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* NOTIFICATION */
+  .notif {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--panel);
+    border: 1px solid var(--border-lit);
+    padding: 10px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text);
+    border-radius: 2px;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+  }
+
+  .notif.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* TRACK TYPE TOGGLE */
+  .track-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .track-btn {
+    padding: 12px;
+    background: var(--panel);
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .track-btn.active {
+    background: var(--film);
+    color: var(--accent);
+  }
+
+  /* SECTION DIVIDER */
+  .section-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::before {
+    content: '';
+    width: 20px;
+    height: 1px;
+    background: var(--border-lit);
+  }
+
+  /* ANIMATE IN */
+  .fade-in {
+    animation: fadeIn 0.5s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--black); }
+  ::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">FRAME<span>.</span></div>
+  <div class="status-bar">
+    <div class="rec-dot"></div>
+    <span>CINEMATIC STUDIO</span>
+    <span>|</span>
+    <span id="stageLabel">STAGE 01</span>
+  </div>
+</header>
+
+<div class="studio">
+
+  <!-- STAGE TRACK -->
+  <div class="stage-track" id="stageTrack">
+    <div class="stage-pip active" id="pip1"></div>
+    <div class="stage-pip" id="pip2"></div>
+    <div class="stage-pip" id="pip3"></div>
+    <div class="stage-pip" id="pip4"></div>
+    <div class="stage-pip" id="pip5"></div>
+    <div class="stage-pip" id="pip6"></div>
+  </div>
+
+  <!-- STEP 1: IMAGE UPLOAD -->
+  <div id="step1">
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" accept="image/*">
+      <div class="upload-icon">↑</div>
+      <h3>Upload Reference Image</h3>
+      <p>Drop your image here or tap to browse</p>
+    </div>
+
+    <div class="preview-strip" id="previewStrip">
+      <img id="previewImg" src="" alt="Reference">
+      <div class="preview-label">REFERENCE</div>
+      <button class="preview-reset" onclick="resetImage()">✕ RESET</button>
+    </div>
+
+    <div class="field-group" id="metaFields" style="display:none">
+      <div>
+        <div class="field-label">Film Title</div>
+        <input class="field-input" id="titleInput" type="text" placeholder="e.g. MIDNIGHT SIGNAL">
+      </div>
+      <div>
+        <div class="field-label">Tagline</div>
+        <input class="field-input" id="taglineInput" type="text" placeholder="e.g. Some Signals Never Die">
+      </div>
+
+      <!-- TRACK TYPE -->
+      <div>
+        <div class="field-label">Output Track</div>
+        <div class="track-toggle">
+          <button class="track-btn active" id="trackImage" onclick="setTrack('image')">IMAGE GEN</button>
+          <button class="track-btn" id="trackVideo" onclick="setTrack('video')">VIDEO PROMPT</button>
+        </div>
+      </div>
+
+      <!-- IMAGE PLATFORM -->
+      <div id="imagePlatformSection">
+        <div class="field-label">Image Platform</div>
+        <div class="platform-grid">
+          <div class="platform-card selected" onclick="selectPlatform('nano2')" id="plat-nano2">
+            <div class="pc-name">NANO BANANA 2</div>
+            <div class="pc-type">GEMINI · FLASH</div>
+          </div>
+          <div class="platform-card" onclick="selectPlatform('nanopro')" id="plat-nanopro">
+            <div class="pc-name">NANO BANANA PRO</div>
+            <div class="pc-type">GEMINI · PRO</div>
+          </div>
+          <div class="platform-card" onclick="selectPlatform('chatgpt')" id="plat-chatgpt">
+            <div class="pc-name">CHATGPT</div>
+            <div class="pc-type">GPT-IMAGE · PROMPT</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIDEO PLATFORM -->
+      <div id="videoPlatformSection" style="display:none">
+        <div class="field-label">Video Platform</div>
+        <div class="platform-grid">
+          <div class="platform-card" onclick="selectVideoPlatform('higgsfield')" id="vplat-higgsfield">
+            <div class="pc-name">HIGGSFIELD</div>
+            <div class="pc-type">MULTI-ENGINE</div>
+          </div>
+          <div class="platform-card" onclick="selectVideoPlatform('flow')" id="vplat-flow">
+            <div class="pc-name">GOOGLE FLOW</div>
+            <div class="pc-type">VEO 3.1 NATIVE</div>
+          </div>
+        </div>
+
+        <!-- ENGINE SELECTOR (Higgsfield only) -->
+        <div class="engine-panel" id="enginePanel">
+          <div class="engine-header">SELECT ENGINE</div>
+          <div class="engine-list">
+            <div class="engine-item" onclick="selectEngine('sora2')" id="eng-sora2">
+              <span class="ei-name">Sora 2</span>
+              <span class="ei-badge badge-partial">PARTIAL AUDIO</span>
+            </div>
+            <div class="engine-item" onclick="selectEngine('veo31')" id="eng-veo31">
+              <span class="ei-name">Veo 3.1</span>
+              <span class="ei-badge badge-full">FULL AUDIO</span>
+            </div>
+            <div class="engine-item" onclick="selectEngine('kling')" id="eng-kling">
+              <span class="ei-name">Kling 3.0</span>
+              <span class="ei-badge badge-full">FULL AUDIO + MULTI-SHOT</span>
+            </div>
+            <div class="engine-item" onclick="selectEngine('wan')" id="eng-wan">
+              <span class="ei-name">WAN 2.5</span>
+              <span class="ei-badge badge-post">POST AUDIO ONLY</span>
+            </div>
+            <div class="engine-item" onclick="selectEngine('minimax')" id="eng-minimax">
+              <span class="ei-name">Minimax</span>
+              <span class="ei-badge badge-partial">CONFIRM AUDIO</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="gen-btn" id="genBtn" onclick="generate()">RECONSTRUCT SCENE</button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="film-reel"></div>
+    <div class="loading-text">PROCESSING</div>
+    <div class="loading-stage" id="loadingStage">Analyzing reference image...</div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output-panel" id="outputPanel">
+
+    <!-- IMAGE RESULT -->
+    <div id="imageResultSection">
+      <div class="output-header">
+        <div class="output-title">RECONSTRUCTED FRAME</div>
+        <div class="output-actions">
+          <button class="out-btn" onclick="downloadImage()">↓ SAVE</button>
+        </div>
+      </div>
+      <div class="image-output-wrap">
+        <div class="title-card-wrap" id="titleCardWrap">
+          <img id="resultImg" src="" alt="Reconstructed">
+          <div class="title-overlay" id="titleOverlay">
+            <div class="film-title" id="overlayTitle"></div>
+            <div class="film-tagline" id="overlayTagline"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PALETTE -->
+      <div class="palette-strip" id="paletteStrip"></div>
+    </div>
+
+    <!-- REVERSE ENGINEERING -->
+    <div class="text-section" id="reverseSection">
+      <div class="text-section-label">Cinematographer Breakdown</div>
+      <div class="text-body" id="reverseText"></div>
+    </div>
+
+    <!-- SHOT SYSTEM -->
+    <div class="text-section" id="shotSection">
+      <div class="text-section-label">Shot System</div>
+      <div class="shot-block" id="shotBlock"></div>
+    </div>
+
+    <!-- CAMERA BEHAVIOR (video track) -->
+    <div class="text-section" id="camSection" style="display:none">
+      <div class="text-section-label">Camera Behavior</div>
+      <div class="cam-options" id="camOptions"></div>
+    </div>
+
+    <!-- PROMPT -->
+    <div class="text-section" id="promptSection">
+      <div class="text-section-label" id="promptLabel">Generated Prompt</div>
+      <div class="prompt-box" id="promptBox"></div>
+      <button class="out-btn" style="margin-top:10px" onclick="copyPrompt()">COPY PROMPT</button>
+    </div>
+
+    <!-- LOOP ACTIONS -->
+    <div class="loop-actions">
+      <button class="loop-btn" onclick="requestChanges()">A — CHANGES</button>
+      <button class="loop-btn primary" onclick="generateDifferentPrompt()">B — ALT PLATFORM</button>
+      <button class="loop-btn" onclick="fullReset()">C — NEW IMAGE</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const state = {
+  imageFile: null,
+  imageBase64: null,
+  title: '',
+  tagline: '',
+  track: 'image',
+  imagePlatform: 'nano2',
+  videoPlatform: null,
+  videoEngine: null,
+  selectedCamera: null,
+  recommendedCamera: null,
+  palette: [],
+  generatedImageUrl: null,
+  promptText: '',
+  reverseText: '',
+  shotData: null,
+  sceneEnergy: ''
+};
+
+// ─── PLATFORM MODEL MAP ───────────────────────────────────────────────────────
+const MODEL_MAP = {
+  nano2: 'gemini-3.1-flash-image-preview',
+  nanopro: 'gemini-3-pro-image-preview',
+};
+
+// ─── UPLOAD ──────────────────────────────────────────────────────────────────
+const fileInput = document.getElementById('fileInput');
+const uploadZone = document.getElementById('uploadZone');
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+uploadZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  uploadZone.classList.add('dragover');
+});
+
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file) {
+  state.imageFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    state.imageBase64 = ev.target.result;
+    document.getElementById('previewImg').src = ev.target.result;
+    document.getElementById('previewStrip').style.display = 'block';
+    document.getElementById('uploadZone').style.display = 'none';
+    document.getElementById('metaFields').style.display = 'flex';
+    setStage(2);
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetImage() {
+  state.imageFile = null;
+  state.imageBase64 = null;
+  document.getElementById('previewStrip').style.display = 'none';
+  document.getElementById('uploadZone').style.display = 'flex';
+  document.getElementById('metaFields').style.display = 'none';
+  fileInput.value = '';
+  setStage(1);
+}
+
+// ─── TRACK TOGGLE ────────────────────────────────────────────────────────────
+function setTrack(track) {
+  state.track = track;
+  document.getElementById('trackImage').classList.toggle('active', track === 'image');
+  document.getElementById('trackVideo').classList.toggle('active', track === 'video');
+  document.getElementById('imagePlatformSection').style.display = track === 'image' ? 'block' : 'none';
+  document.getElementById('videoPlatformSection').style.display = track === 'video' ? 'block' : 'none';
+  document.getElementById('genBtn').textContent = track === 'image' ? 'RECONSTRUCT SCENE' : 'ANALYZE + BUILD PROMPT';
+}
+
+// ─── PLATFORM SELECTION ──────────────────────────────────────────────────────
+function selectPlatform(id) {
+  state.imagePlatform = id;
+  ['nano2','nanopro','chatgpt'].forEach(p => {
+    document.getElementById('plat-'+p)?.classList.toggle('selected', p === id);
+  });
+}
+
+function selectVideoPlatform(id) {
+  state.videoPlatform = id;
+  ['higgsfield','flow'].forEach(p => {
+    document.getElementById('vplat-'+p)?.classList.toggle('selected', p === id);
+  });
+  document.getElementById('enginePanel').classList.toggle('visible', id === 'higgsfield');
+  if (id === 'flow') { state.videoEngine = 'veo31'; }
+}
+
+function selectEngine(id) {
+  state.videoEngine = id;
+  ['sora2','veo31','kling','wan','minimax'].forEach(e => {
+    document.getElementById('eng-'+e)?.classList.toggle('selected', e === id);
+  });
+}
+
+// ─── STAGE TRACKER ───────────────────────────────────────────────────────────
+function setStage(n) {
+  document.getElementById('stageLabel').textContent = 'STAGE 0' + n;
+  for (let i = 1; i <= 6; i++) {
+    const pip = document.getElementById('pip'+i);
+    if (!pip) continue;
+    pip.classList.remove('active','done');
+    if (i < n) pip.classList.add('done');
+    if (i === n) pip.classList.add('active');
+  }
+}
+
+// ─── MAIN GENERATE ───────────────────────────────────────────────────────────
+async function generate() {
+  state.title = document.getElementById('titleInput').value.trim();
+  state.tagline = document.getElementById('taglineInput').value.trim();
+
+  if (!state.imageBase64) { showNotif('Please upload a reference image'); return; }
+  if (!state.title) { showNotif('Please enter a title'); return; }
+
+  if (state.track === 'video' && !state.videoPlatform) {
+    showNotif('Please select a video platform'); return;
+  }
+  if (state.track === 'video' && state.videoPlatform === 'higgsfield' && !state.videoEngine) {
+    showNotif('Please select a Higgsfield engine'); return;
+  }
+
+  document.getElementById('loadingOverlay').classList.add('visible');
+  document.getElementById('outputPanel').classList.remove('visible');
+  document.getElementById('step1').style.opacity = '0.4';
+  document.getElementById('step1').style.pointerEvents = 'none';
+  setStage(3);
+
+  try {
+    if (state.track === 'image') {
+      await runImageTrack();
+    } else {
+      await runVideoTrack();
+    }
+    document.getElementById('loadingOverlay').classList.remove('visible');
+    document.getElementById('outputPanel').classList.add('visible');
+    document.getElementById('outputPanel').classList.add('fade-in');
+    document.getElementById('step1').style.opacity = '1';
+    document.getElementById('step1').style.pointerEvents = 'auto';
+    setStage(6);
+  } catch(err) {
+    document.getElementById('loadingOverlay').classList.remove('visible');
+    document.getElementById('step1').style.opacity = '1';
+    document.getElementById('step1').style.pointerEvents = 'auto';
+    showNotif('Error: ' + err.message);
+    console.error(err);
+    setStage(2);
+  }
+}
+
+// ─── IMAGE TRACK ─────────────────────────────────────────────────────────────
+async function runImageTrack() {
+  setLoadingStage('Analyzing scene...');
+
+  // STEP A: Analyze with Claude via Anthropic API
+  const analysisPrompt = buildAnalysisPrompt();
+  setLoadingStage('Running cinematic analysis...');
+
+  const analysisRes = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: state.imageFile.type || 'image/jpeg',
+              data: state.imageBase64.split(',')[1]
+            }
+          },
+          { type: 'text', text: analysisPrompt }
+        ]
+      }]
+    })
+  });
+
+  const analysisData = await analysisRes.json();
+  const analysisText = analysisData.content.map(b => b.text || '').join('');
+
+  let parsed;
+  try {
+    const clean = analysisText.replace(/```json|```/g, '').trim();
+    parsed = JSON.parse(clean);
+  } catch(e) {
+    throw new Error('Analysis parse failed');
+  }
+
+  state.reverseText = parsed.reverse_engineering;
+  state.shotData = parsed.shot_system;
+  state.sceneEnergy = parsed.scene_energy;
+  state.palette = parsed.palette || [];
+
+  setLoadingStage('Reconstructing scene with Nano Banana...');
+
+  // STEP B: Generate image
+  let generatedImg;
+
+  if (state.imagePlatform === 'chatgpt') {
+    // ChatGPT track — generate prompt instead
+    state.promptText = buildChatGPTPrompt(parsed);
+    renderOutput(null, parsed);
+    return;
+  }
+
+  const model = MODEL_MAP[state.imagePlatform];
+  const imagePrompt = buildNanoBananaPrompt(parsed);
+
+  setLoadingStage('Generating cinematic frame...');
+
+  try {
+    generatedImg = await puter.ai.txt2img(imagePrompt, { model });
+  } catch(puterErr) {
+    console.warn('Puter image gen failed, using analysis output only:', puterErr);
+    generatedImg = null;
+  }
+
+  state.generatedImageUrl = generatedImg ? generatedImg.src || generatedImg : null;
+
+  // STEP C: Generate platform prompt
+  state.promptText = buildNanaBananaFinalPrompt(parsed, state.imagePlatform);
+
+  renderOutput(state.generatedImageUrl, parsed);
+}
+
+// ─── VIDEO TRACK ─────────────────────────────────────────────────────────────
+async function runVideoTrack() {
+  setLoadingStage('Analyzing reference for video reconstruction...');
+
+  const analysisRes = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: state.imageFile.type || 'image/jpeg',
+              data: state.imageBase64.split(',')[1]
+            }
+          },
+          { type: 'text', text: buildVideoAnalysisPrompt() }
+        ]
+      }]
+    })
+  });
+
+  const analysisData = await analysisRes.json();
+  const rawText = analysisData.content.map(b => b.text || '').join('');
+
+  let parsed;
+  try {
+    const clean = rawText.replace(/```json|```/g, '').trim();
+    parsed = JSON.parse(clean);
+  } catch(e) {
+    throw new Error('Video analysis parse failed');
+  }
+
+  state.reverseText = parsed.reverse_engineering;
+  state.shotData = parsed.shot_system;
+  state.sceneEnergy = parsed.scene_energy;
+  state.palette = parsed.palette || [];
+
+  // Auto-select camera based on scene energy
+  const energyMap = {
+    still: 'A', observational: 'B', tense: 'B',
+    dynamic: 'C', chaotic: 'C'
+  };
+  state.recommendedCamera = energyMap[state.sceneEnergy?.toLowerCase()] || 'B';
+  state.selectedCamera = state.recommendedCamera;
+
+  setLoadingStage('Building 7-layer video prompt...');
+
+  // Build video prompt
+  const engine = state.videoEngine;
+  const platform = state.videoPlatform;
+  state.promptText = buildVideoPrompt(parsed, engine, platform);
+
+  renderVideoOutput(parsed);
+}
+
+// ─── ANALYSIS PROMPT ─────────────────────────────────────────────────────────
+function buildAnalysisPrompt() {
+  return `You are a professional cinematographer and color grading artist analyzing a reference image for cinematic reconstruction.
+
+Analyze this image and return ONLY a valid JSON object with NO preamble, NO markdown, and NO code fences. Return raw JSON only.
+
+{
+  "subjects": "description of subjects and key identifiers",
+  "environment": "environment and architecture description",
+  "lighting": "lighting direction, softness, sources",
+  "composition": "framing, angle, subject placement",
+  "depth_of_field": "depth of field description",
+  "color_temperature": "color temperature description",
+  "spatial_layering": "foreground, midground, background layers",
+  "scene_energy": "one word: still | observational | tense | dynamic | chaotic",
+  "lens_feel": "focal length feel (e.g. 85mm portrait, 35mm environmental)",
+  "reverse_engineering": "One cinematic paragraph describing lens, lighting setup, color temperature, composition, depth of field, and spatial layering as a DP breakdown.",
+  "shot_system": {
+    "shot_type": "",
+    "camera_position": "",
+    "lens_profile": "",
+    "camera_A": "Static locked frame description",
+    "camera_B": "Subtle motion description",
+    "camera_C": "Dynamic motion description",
+    "depth_strategy": "",
+    "lighting_behavior": ""
+  },
+  "palette": ["#hex1","#hex2","#hex3","#hex4","#hex5","#hex6","#hex7","#hex8","#hex9","#hex10"],
+  "reconstruction_prompt": "A detailed 16:9 cinematic reconstruction prompt for Nano Banana describing the full scene with material realism, lighting, environment expansion, and subject identity maintained. Start with wide establishing environment, then subject, then lighting."
+}`;
+}
+
+function buildVideoAnalysisPrompt() {
+  return `You are a professional cinematographer analyzing a reference image for video motion reconstruction.
+
+Return ONLY a valid JSON object with NO preamble, NO markdown, NO code fences.
+
+{
+  "subjects": "subject identity, wardrobe, key visual identifiers that must stay locked",
+  "environment": "environment description",
+  "lighting": "lighting description",
+  "composition": "framing and composition",
+  "scene_energy": "one word: still | observational | tense | dynamic | chaotic",
+  "lens_feel": "focal length feel",
+  "reverse_engineering": "One paragraph DP breakdown of lens, lighting, color temperature, composition, depth, spatial layering.",
+  "shot_system": {
+    "shot_type": "",
+    "camera_position": "",
+    "lens_profile": "",
+    "camera_A": "Static locked frame",
+    "camera_B": "Subtle motion — push-in, drift, or handheld breathing",
+    "camera_C": "Dynamic — tracking, dolly, orbit",
+    "depth_strategy": "",
+    "lighting_behavior": ""
+  },
+  "palette": ["#hex1","#hex2","#hex3","#hex4","#hex5","#hex6","#hex7","#hex8","#hex9","#hex10"],
+  "video_layers": {
+    "identity_anchor": "Subject reference + key identifiers + consistency rule",
+    "primary_action": "Suggested primary motion for subject",
+    "micro_expressions": "Suggested facial and hand micro-detail behavior",
+    "temporal_choreography": "Suggested 10-second beat structure",
+    "environmental_dynamics": "Background motion + atmospheric effects",
+    "cinematic_overlay": "Lens type + camera movement recommendation"
+  }
+}`;
+}
+
+// ─── PROMPT BUILDERS ─────────────────────────────────────────────────────────
+function buildNanoBananaPrompt(parsed) {
+  return `${parsed.reconstruction_prompt} Ultra-photorealistic, 16:9 cinematic frame, shot on 35mm film, ${parsed.lighting}, ${parsed.color_temperature}, ${parsed.depth_of_field} depth of field, professional color grade, material realism — fabric texture, skin pore detail, environmental grain, surface imperfections. No watermark.`;
+}
+
+function buildNanaBananaFinalPrompt(parsed, platform) {
+  if (platform === 'nano2' || platform === 'nanopro') {
+    return `NANO BANANA ${platform === 'nanopro' ? 'PRO' : '2'} PROMPT\n\n${parsed.reconstruction_prompt}\n\nKey directives:\n— 16:9 cinematic aspect ratio\n— ${parsed.lighting}\n— ${parsed.color_temperature}\n— ${parsed.depth_of_field} depth of field\n— Material realism: fabric weave, skin texture, surface grain\n— Environment expanded naturally beyond original frame\n— No watermarks, no text overlays`;
+  }
+  return buildChatGPTPrompt(parsed);
+}
+
+function buildChatGPTPrompt(parsed) {
+  return `CHATGPT / GPT-IMAGE PROMPT\n\nCreate a photorealistic 16:9 cinematic image. ${parsed.reconstruction_prompt} Lighting: ${parsed.lighting}. Color temperature: ${parsed.color_temperature}. Depth of field: ${parsed.depth_of_field}. Mood: ${parsed.scene_energy}. Aspect ratio: 16:9. No text, no watermarks.`;
+}
+
+function buildVideoPrompt(parsed, engine, platform) {
+  const layers = parsed.video_layers;
+  const cam = state.selectedCamera;
+  const camKey = 'camera_' + cam;
+  const camDesc = parsed.shot_system?.[camKey] || '';
+
+  const audioNote = getAudioNote(engine);
+  const multiShot = engine === 'kling' ? '\n\nMULTI-SHOT: Up to 6 cuts available. Suggest cut points based on temporal choreography beats.' : '';
+
+  const engineLabel = {
+    sora2: 'SORA 2 (via Higgsfield)',
+    veo31: platform === 'flow' ? 'VEO 3.1 (Google Flow)' : 'VEO 3.1 (via Higgsfield)',
+    kling: 'KLING 3.0 (via Higgsfield)',
+    wan: 'WAN 2.5 (via Higgsfield)',
+    minimax: 'MINIMAX (via Higgsfield)',
+  }[engine] || engine?.toUpperCase();
+
+  let prompt = `VIDEO PROMPT — ${engineLabel}\n`;
+  prompt += `Camera: Option ${cam} — ${camDesc}\n\n`;
+
+  prompt += `LAYER 1 — IDENTITY ANCHOR\n${layers.identity_anchor}\n\n`;
+  prompt += `LAYER 2 — PRIMARY ACTION\n${layers.primary_action}\n\n`;
+  prompt += `LAYER 3 — MICRO-EXPRESSIONS\n${layers.micro_expressions}\n\n`;
+  prompt += `LAYER 4 — TEMPORAL CHOREOGRAPHY\n${layers.temporal_choreography}\n\n`;
+  prompt += `LAYER 5 — ENVIRONMENTAL DYNAMICS\n${layers.environmental_dynamics}\n\n`;
+  prompt += `LAYER 6 — CINEMATIC OVERLAY\n${parsed.shot_system?.lens_profile}. ${camDesc}\n\n`;
+
+  if (audioNote === 'full') {
+    prompt += `LAYER 7 — SONIC/AUDIO\nFOLEY: Natural ambient sounds matching the environment.\nDIALOGUE: [Add character dialogue here — will be lip-sync matched]\nAMBIENT BED: Environmental audio bed matching scene energy: ${parsed.scene_energy}`;
+  } else if (audioNote === 'partial') {
+    prompt += `LAYER 7 — SONIC/AUDIO [NOTE: Audio may require post-production depending on your access tier]\nFOLEY: Natural ambient sounds.\nAMBIENT BED: Environmental audio matching scene energy: ${parsed.scene_energy}`;
+  } else {
+    prompt += `LAYER 7 — SONIC/AUDIO\n[DROPPED — ${engine?.toUpperCase()} does not support native audio. Handle audio in post-production.]`;
+  }
+
+  prompt += multiShot;
+  return prompt;
+}
+
+function getAudioNote(engine) {
+  if (['veo31','kling'].includes(engine)) return 'full';
+  if (['sora2','minimax'].includes(engine)) return 'partial';
+  if (engine === 'wan') return 'none';
+  if (!engine) return 'full'; // flow default
+  return 'full';
+}
+
+// ─── RENDER OUTPUT ───────────────────────────────────────────────────────────
+function renderOutput(imageUrl, parsed) {
+  // Title overlay
+  document.getElementById('overlayTitle').textContent = state.title.toUpperCase();
+  document.getElementById('overlayTagline').textContent = state.tagline;
+
+  // Image
+  const imgEl = document.getElementById('resultImg');
+  const imageSection = document.getElementById('imageResultSection');
+
+  if (imageUrl) {
+    imgEl.src = imageUrl;
+    imgEl.style.display = 'block';
+    imageSection.style.display = 'block';
+  } else {
+    imageSection.style.display = 'none';
+  }
+
+  // Palette
+  renderPalette(parsed.palette || []);
+
+  // Reverse engineering
+  document.getElementById('reverseText').textContent = parsed.reverse_engineering;
+
+  // Shot system
+  renderShotBlock(parsed.shot_system);
+
+  // Camera section (image track — hide)
+  document.getElementById('camSection').style.display = 'none';
+
+  // Prompt
+  const label = state.imagePlatform === 'chatgpt' ? 'ChatGPT Prompt' :
+    state.imagePlatform === 'nanopro' ? 'Nano Banana Pro Prompt' : 'Nano Banana 2 Prompt';
+  document.getElementById('promptLabel').textContent = label;
+  document.getElementById('promptBox').textContent = state.promptText;
+}
+
+function renderVideoOutput(parsed) {
+  // No image generated for video track
+  document.getElementById('imageResultSection').style.display = 'none';
+
+  // Palette
+  renderPalette(parsed.palette || []);
+
+  // Reverse
+  document.getElementById('reverseText').textContent = parsed.reverse_engineering;
+
+  // Shot
+  renderShotBlock(parsed.shot_system);
+
+  // Camera behavior options
+  document.getElementById('camSection').style.display = 'block';
+  renderCameraOptions(parsed.shot_system);
+
+  // Prompt
+  const engineLabel = {
+    sora2: 'Sora 2', veo31: 'Veo 3.1', kling: 'Kling 3.0',
+    wan: 'WAN 2.5', minimax: 'Minimax'
+  }[state.videoEngine] || 'Video';
+  document.getElementById('promptLabel').textContent = `${engineLabel} — 7-Layer Video Prompt`;
+  document.getElementById('promptBox').textContent = state.promptText;
+}
+
+function renderPalette(colors) {
+  const strip = document.getElementById('paletteStrip');
+  strip.innerHTML = '';
+  colors.forEach(hex => {
+    const sw = document.createElement('div');
+    sw.className = 'palette-swatch';
+    sw.style.background = hex;
+    sw.innerHTML = `<span class="swatch-hex">${hex}</span>`;
+    sw.onclick = () => { navigator.clipboard.writeText(hex); showNotif('Copied ' + hex); };
+    strip.appendChild(sw);
+  });
+}
+
+function renderShotBlock(shot) {
+  if (!shot) return;
+  const block = document.getElementById('shotBlock');
+  const rows = [
+    ['Shot Type', shot.shot_type],
+    ['Camera Position', shot.camera_position],
+    ['Lens Profile', shot.lens_profile],
+    ['Depth Strategy', shot.depth_strategy],
+    ['Lighting Behavior', shot.lighting_behavior],
+  ];
+  block.innerHTML = rows.map(([k, v]) =>
+    `<div class="shot-row"><div class="shot-key">${k}</div><div class="shot-val">${v || '—'}</div></div>`
+  ).join('');
+}
+
+function renderCameraOptions(shot) {
+  const options = document.getElementById('camOptions');
+  const labels = {
+    A: ['A', 'Static', shot?.camera_A || 'Locked static frame'],
+    B: ['B', 'Subtle', shot?.camera_B || 'Push-in or drift'],
+    C: ['C', 'Dynamic', shot?.camera_C || 'Tracking or dolly']
+  };
+
+  options.innerHTML = Object.entries(labels).map(([key, [letter, label, desc]]) => {
+    const isRec = key === state.recommendedCamera;
+    const isSel = key === state.selectedCamera;
+    return `<div class="cam-option ${isRec ? 'recommended' : ''} ${isSel ? 'selected' : ''}" 
+      onclick="switchCamera('${key}')" id="camopt-${key}">
+      <div class="cam-letter">${letter}</div>
+      <div><strong>${label}</strong>${isRec ? ' <span style="color:var(--accent);font-size:9px">★ RECOMMENDED</span>' : ''}<br><span style="color:var(--muted);font-size:11px">${desc}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function switchCamera(key) {
+  state.selectedCamera = key;
+  // Rebuild prompt with new camera
+  if (state.shotData) {
+    state.promptText = buildVideoPrompt({ video_layers: state._parsedVideoLayers, shot_system: state.shotData }, state.videoEngine, state.videoPlatform);
+    document.getElementById('promptBox').textContent = state.promptText;
+  }
+  // Update UI
+  ['A','B','C'].forEach(k => {
+    const el = document.getElementById('camopt-'+k);
+    if (el) el.classList.toggle('selected', k === key);
+  });
+  showNotif('Camera option ' + key + ' selected');
+}
+
+// ─── LOOP ACTIONS ────────────────────────────────────────────────────────────
+function requestChanges() {
+  showNotif('Upload a new image or adjust title/tagline above');
+  document.getElementById('step1').style.opacity = '1';
+  document.getElementById('step1').style.pointerEvents = 'auto';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function generateDifferentPrompt() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showNotif('Change platform above and regenerate');
+}
+
+function fullReset() {
+  state.imageFile = null;
+  state.imageBase64 = null;
+  state.title = '';
+  state.tagline = '';
+  state.palette = [];
+  state.generatedImageUrl = null;
+  state.promptText = '';
+  state.reverseText = '';
+  state.shotData = null;
+  state.selectedCamera = null;
+
+  document.getElementById('titleInput').value = '';
+  document.getElementById('taglineInput').value = '';
+  document.getElementById('previewStrip').style.display = 'none';
+  document.getElementById('uploadZone').style.display = 'flex';
+  document.getElementById('metaFields').style.display = 'none';
+  document.getElementById('outputPanel').classList.remove('visible');
+  document.getElementById('step1').style.opacity = '1';
+  document.getElementById('step1').style.pointerEvents = 'auto';
+  fileInput.value = '';
+  setStage(1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showNotif('Reset complete — ready for new image');
+}
+
+// ─── UTILITIES ───────────────────────────────────────────────────────────────
+function setLoadingStage(text) {
+  document.getElementById('loadingStage').textContent = text;
+}
+
+function copyPrompt() {
+  navigator.clipboard.writeText(state.promptText).then(() => showNotif('Prompt copied'));
+}
+
+function downloadImage() {
+  if (!state.generatedImageUrl) return;
+  const a = document.createElement('a');
+  a.href = state.generatedImageUrl;
+  a.download = (state.title || 'frame') + '_reconstructed.jpg';
+  a.click();
+}
+
+function showNotif(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
