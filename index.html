@@ -1099,12 +1099,19 @@ async function runImageTrack(modifyInstruction = null) {
   const analysisData = await analysisRes.json();
   const analysisText = analysisData.content.map(b => b.text || '').join('');
 
+  // Check for Worker-level errors
+  let errorCheck;
+  try { errorCheck = JSON.parse(analysisText); } catch(e) {}
+  if (errorCheck?.error) {
+    throw new Error('Worker error: ' + (errorCheck.message || errorCheck.error));
+  }
+
   let parsed;
   try {
     const clean = analysisText.replace(/```json|```/g, '').trim();
     parsed = JSON.parse(clean);
   } catch(e) {
-    throw new Error('Analysis parse failed');
+    throw new Error('Analysis parse failed. Raw: ' + analysisText.slice(0, 200));
   }
 
   state.parsedData = parsed;
@@ -1155,12 +1162,19 @@ async function runVideoTrack() {
   const analysisData = await analysisRes.json();
   const rawText = analysisData.content.map(b => b.text || '').join('');
 
+  // Check for Worker-level errors
+  let errCheck;
+  try { errCheck = JSON.parse(rawText); } catch(e) {}
+  if (errCheck?.error) {
+    throw new Error('Worker error: ' + (errCheck.message || errCheck.error));
+  }
+
   let parsed;
   try {
     const clean = rawText.replace(/```json|```/g, '').trim();
     parsed = JSON.parse(clean);
   } catch(e) {
-    throw new Error('Video analysis parse failed');
+    throw new Error('Video analysis parse failed. Raw: ' + rawText.slice(0, 200));
   }
 
   state.parsedData = parsed;
